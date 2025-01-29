@@ -25,6 +25,7 @@ async function getLyricsFromGenius(song, artist) {
         }
 
         const songUrl = searchResponse.data.response.hits[0].result.url;
+        console.log("Song URL:", songUrl); // Log the URL for debugging
         const lyrics = await scrapeLyrics(songUrl);
         return { song, artist, lyrics };
 
@@ -37,10 +38,12 @@ async function getLyricsFromGenius(song, artist) {
 async function scrapeLyrics(url) {
     try {
         const response = await axios.get(url);
+        console.log("Page content:", response.data); // Log the page content for debugging
         const $ = cheerio.load(response.data);
         let lyrics = "";
 
-        $("div[data-lyrics-container='true']").each((_, element) => {
+        // Update the selector based on your inspection of the Genius page structure
+        $("div.lyrics").each((_, element) => {
             lyrics += $(element).text().trim() + "\n\n";
         });
 
