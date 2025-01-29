@@ -1,10 +1,17 @@
+require("dotenv").config(); // Load environment variables at the top
+
 const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
-require("dotenv").config();
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 const GENIUS_ACCESS_TOKEN = process.env.GENIUS_ACCESS_TOKEN;
+
+if (!GENIUS_ACCESS_TOKEN) {
+    console.error("❌ Error: GENIUS_ACCESS_TOKEN is missing. Set it in your Vercel environment variables.");
+    process.exit(1); // Stop execution if no token is found
+}
 
 async function getLyricsFromGenius(song, artist) {
     try {
@@ -13,7 +20,7 @@ async function getLyricsFromGenius(song, artist) {
             headers: { Authorization: `Bearer ${GENIUS_ACCESS_TOKEN}` }
         });
 
-        if (searchResponse.data.response.hits.length === 0) {
+        if (!searchResponse.data.response.hits.length) {
             return { error: "Lyrics not found" };
         }
 
@@ -22,7 +29,8 @@ async function getLyricsFromGenius(song, artist) {
         return { song, artist, lyrics };
 
     } catch (error) {
-        return { error: "Error fetching lyrics" };
+        console.error("❌ Error fetching lyrics:", error.message);
+        return { error: "Error fetching lyrics. Please try again later." };
     }
 }
 
@@ -33,11 +41,12 @@ async function scrapeLyrics(url) {
         let lyrics = "";
 
         $("div[data-lyrics-container='true']").each((_, element) => {
-            lyrics += $(element).text() + "\n\n";
+            lyrics += $(element).text().trim() + "\n\n";
         });
 
-        return lyrics.trim();
+        return lyrics || "Lyrics not available.";
     } catch (error) {
+        console.error("❌ Error scraping lyrics:", error.message);
         return "Error retrieving lyrics.";
     }
 }
@@ -51,6 +60,10 @@ app.get("/api/get_lyric_search", async (req, res) => {
 
     const result = await getLyricsFromGenius(name, artist);
     res.json(result);
+});
+
+app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
 });
 
 module.exports = app;
