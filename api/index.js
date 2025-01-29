@@ -2,7 +2,6 @@ require("dotenv").config(); // Load environment variables at the top
 
 const express = require("express");
 const axios = require("axios");
-const cheerio = require("cheerio");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,21 +24,14 @@ async function getLyricsFromGenius(song, artist) {
         }
 
         const songPath = searchResponse.data.response.hits[0].result.path;
-        const lyricsUrl = `https://genius.com${songPath}`;
 
-        // Fetch the lyrics from the Genius song page directly
-        const lyricsResponse = await axios.get(lyricsUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Gecko/20100101 Firefox/91.0' // Use a generic User-Agent
-            }
+        // Get song details
+        const songDetailsUrl = `https://api.genius.com${songPath}`;
+        const songDetailsResponse = await axios.get(songDetailsUrl, {
+            headers: { Authorization: `Bearer ${GENIUS_ACCESS_TOKEN}` }
         });
 
-        const $ = cheerio.load(lyricsResponse.data);
-        let lyrics = "";
-
-        $("div.lyrics").each((_, element) => {
-            lyrics += $(element).text().trim() + "\n\n";
-        });
+        const lyrics = songDetailsResponse.data.response.song.lyrics_body;
 
         return { song, artist, lyrics: lyrics || "Lyrics not available." };
     } catch (error) {
