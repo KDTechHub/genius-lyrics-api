@@ -24,39 +24,27 @@ async function getLyricsFromGenius(song, artist) {
             return { error: "Lyrics not found" };
         }
 
-        const songUrl = searchResponse.data.response.hits[0].result.url;
-        console.log("Song URL:", songUrl); // Log the URL for debugging
-        const lyrics = await scrapeLyrics(songUrl);
-        return { song, artist, lyrics };
+        const songPath = searchResponse.data.response.hits[0].result.path;
+        const lyricsUrl = `https://genius.com${songPath}`;
 
-    } catch (error) {
-        console.error("❌ Error fetching lyrics:", error.message);
-        return { error: "Error fetching lyrics. Please try again later." };
-    }
-}
-
-async function scrapeLyrics(url) {
-    try {
-        // Add a user-agent header to simulate a browser request
-        const response = await axios.get(url, {
+        // Fetch the lyrics from the Genius song page directly
+        const lyricsResponse = await axios.get(lyricsUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Gecko/20100101 Firefox/91.0' // Use a generic User-Agent
             }
         });
 
-        console.log("Page content:", response.data); // Log the page content for debugging
-        const $ = cheerio.load(response.data);
+        const $ = cheerio.load(lyricsResponse.data);
         let lyrics = "";
 
-        // Update the selector based on your inspection of the Genius page structure
         $("div.lyrics").each((_, element) => {
             lyrics += $(element).text().trim() + "\n\n";
         });
 
-        return lyrics || "Lyrics not available.";
+        return { song, artist, lyrics: lyrics || "Lyrics not available." };
     } catch (error) {
-        console.error("❌ Error scraping lyrics:", error.message);
-        return "Error retrieving lyrics.";
+        console.error("❌ Error fetching lyrics:", error.message);
+        return { error: "Error fetching lyrics. Please try again later." };
     }
 }
 
